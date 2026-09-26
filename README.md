@@ -1,7 +1,7 @@
 # grok-bot-vprogs round 4 — INTERIM
 
 Private report by Grok (acting for stp), 26 Sep 2026. All times are CEST (Europe/Brussels).
-**This is an interim report. The final paced-run numbers will be added after the scheduled 15:32 CEST stop.**
+**This is an interim report. The final paced-run numbers will be added after the scheduled 11:52 CEST stop.**
 
 Previous rounds: [round 1](https://github.com/STP-KAS/grok-bot-vprogs/tree/tn10-break-report) (branch `tn10-break-report`), [round 2](https://github.com/STP-KAS/grok-bot-vprogs-round2), and [round 3](https://github.com/STP-KAS/grok-bot-vprogs-round3).
 
@@ -9,7 +9,7 @@ Previous rounds: [round 1](https://github.com/STP-KAS/grok-bot-vprogs/tree/tn10-
 
 Round 4 combined a Kaspa TN10 transaction storm, the `grok-deskfloor` vprog runner, and tic-tac-toe. The full-gusto windows measured high throughput but exposed two operational limits: TN10 periodic pruning/compaction can require more than 15 GB transient disk, and the mempool brake reacts too slowly when senders are already in flight. The node survived after an emergency stop, removal of the rebuildable `utxoindex`, and restart.
 
-The storm is now in an **8-hour paced run to 15:32 CEST**, restarted at **6x minimum fee**. P-tag fee is 385,800 sompi/transaction (6 × the 64,300-sompi base used here). The pacer is currently disk-limited at about 719 accepted tx/s, with a low mempool and n0 synced. Final burn and disk measurements are deliberately pending.
+The storm is now in an **4-hour paced run to 11:52 CEST**, restarted at **6x minimum fee**. P-tag fee is 385,800 sompi/transaction (6 × the 64,300-sompi base used here). The pacer is currently disk-limited at about 1,380 accepted tx/s, with a low mempool and n0 synced. Final burn and disk measurements are deliberately pending.
 
 ## What and how
 
@@ -17,7 +17,7 @@ The storm is now in an **8-hour paced run to 15:32 CEST**, restarted at **6x min
 - Storm: `scripts/tps-supervisor.py` plus eight P2SH `rwstorm.mjs` workers and one 0.5-TKAS P2PK lane.
 - The original full-gusto fee was 10x (P tag 643,000 sompi/tx, about 1,000 sompi/g). The paced run was restarted with `FEE_MULT_P=6.0` (P tag 385,800 sompi/tx).
 - Supervisor safeguards: mempool taper/gate and hard brake; live disk guard; stale-worker-TPS fix; `STOP-FILE-PRESENT` logging; conditional `--utxoindex` on auto-restart.
-- Standalone round-4 pacer: disk <12 GB, resume >15 GB, >3 GB/120 s drop latch for 10 minutes, mempool >80k with resume below 40k, n0 crash/RPC/sync latch, and the 15:32 stop.
+- Standalone round-4 pacer: disk <12 GB, resume >15 GB, >3 GB/120 s drop latch for 10 minutes, mempool >80k with resume below 40k, n0 crash/RPC/sync latch, and the 11:52 stop.
 - Measurements use `logs/tps12h/supervisor.jsonl`, `logs/storm/ramp.log`, `logs/monitor.jsonl`, `logs/round4/pacer.jsonl`, Kaspa processed-TPS lines, and the round-4 analysis scripts.
 
 ## Timeline (CEST, 26 Sep)
@@ -37,7 +37,7 @@ The storm is now in an **8-hour paced run to 15:32 CEST**, restarted at **6x min
 | 07:16 onward | full gusto 3, storm only, with 12 GB guard and 3 GB/120 s drop guard |
 | 07:28 | mempool near-miss: 96,546 and 6,223 evictions; hard brake reaction was too slow |
 | 07:46 | 10x supervisor/pacer replaced; new 6x workers reached the disk-paced rate |
-| 15:32 | scheduled stop; final numbers and conclusions will be appended then |
+| 11:52 | scheduled stop; final numbers and conclusions will be appended then |
 
 ## Results: full gusto 1 (06:43:44–06:55:44)
 
@@ -86,7 +86,7 @@ The storm had already been stopped, but the TN10 pruning-point move and RocksDB 
 
 At 07:28:18 the mempool reached 96,546 and kaspad evicted 6,223 transactions. The brake had set `RATE_MAX=0`, but workers already had 6–9 seconds of in-flight work and continued offering 3–7k tx/s. A later 91,341 spike showed that stop/start gating at thousands of tx/s is unsafe. The paced run uses a much lower rate and an 80k brake; during the 6x restart the mempool remained in the low hundreds.
 
-## Interim paced run (6x; final after 15:32)
+## Interim paced run (6x; final after 11:52)
 
 At restart, the live state was approximately 79k TKAS in the storm state files and 23.7 GB free. The pacer configuration uses 600 bytes/transaction, a 12.5 GB planning floor, a 12 GB hard guard, a 15 GB resume threshold, and `FEE_TKAS_PER_TX=0.003858` (385,800 sompi = 6x P-tag fee).
 
@@ -96,13 +96,13 @@ Observed after ramp-up:
 |---|---:|
 | P-tag fee | 385,800 sompi/tx |
 | H-lane fee sample | 974,400 sompi/tx base lane fee at 6x |
-| accepted tx/s | 606/s during ramp; 718–719/s once disk-paced |
-| mempool | 0–453 in the first samples; well below 80k |
+| accepted tx/s | 606/s during ramp; about 1,380/s after the shortened-run recompute |
+| mempool | 0–656 before the shortened-run recompute; well below 80k |
 | n0 | pid 2341090, synced, RPC healthy |
 | free disk | about 23.7 GB |
 | binding pacer limit | disk planning rate, about 719/s (fund model about 732/s) |
 
-The pacer projection at this point is approximately **12.5 GB free at 15:32** and **about 1–2k TKAS remaining under its configured fee model**; the final report will replace this with measured fee burn, actual disk slope, and the closing balance. The H lane has a higher carrier fee than the P tag, so its contribution will be reported separately rather than hidden in the headline P-tag fee.
+After shortening the run, the pacer recomputed to about **1,380/s** (disk model) versus about **1,400/s** (configured fee-fund model), so disk is the configured binding limit. Projection is **12.5 GB free at 11:52** and near-zero TKAS remaining under that model; the final report will replace this with measured fee burn, actual disk slope, and the closing balance. The H lane has a higher carrier fee than the P tag, so its contribution will be reported separately rather than hidden in the headline P-tag fee.
 
 ## Flaws and operational lessons
 
@@ -119,7 +119,7 @@ The pacer projection at this point is approximately **12.5 GB free at 15:32** an
 - Require a much larger free-space reserve before TN10 pruning-point moves, or stop cleanly before the expected window.
 - Add a carrier `FeePolicy`/feerate parameter and return an ordinary insufficient-funds error instead of asserting on the first too-small UTXO.
 - Add a preflight that measures the largest required carrier transaction, available UTXOs, and RAM/disk headroom before launching multi-worker vprog tests.
-- Leave the final paced-run data and a post-15:32 cleanup/stop record as the authoritative round-4 numbers.
+- Leave the final paced-run data and a post-11:52 cleanup/stop record as the authoritative round-4 numbers.
 
 ## Draft upstream issues (not filed)
 
@@ -129,4 +129,4 @@ These are drafts only; no upstream issue was filed from this interim report:
 - **U2 — vprogs carrier UTXO selection:** choose a sufficiently large UTXO or combine inputs, and return an error rather than asserting when the first candidate is too small.
 - **U3 — rusty-kaspa/TN10 disk documentation:** document pruning-window storage and transient space requirements, including the additional `--utxoindex` footprint.
 
-Details and reproduction helpers are in `upstream-issues/README.md`, `scripts/`, and `patches/`. The final results section will be appended after 15:32 CEST.
+Details and reproduction helpers are in `upstream-issues/README.md`, `scripts/`, and `patches/`. The final results section will be appended after 11:52 CEST.
