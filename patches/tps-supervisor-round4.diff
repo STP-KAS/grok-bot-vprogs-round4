@@ -1,0 +1,64 @@
+--- scripts/tps-supervisor.py.bak-0650	2026-09-26 06:40:48.057989200 +0200
++++ scripts/tps-supervisor.py	2026-09-26 06:40:56.877950061 +0200
+@@ -74,7 +74,15 @@
+         with open(f"{LOG}/worker-{tag}.jsonl", "rb") as f:
+             f.seek(0, 2); sz = f.tell(); f.seek(max(0, sz - 8000)); ls = f.read().decode(errors="ignore").strip().split("\n")
+         for l in reversed(ls):
+-            if l.startswith("{") and ('"step":"rw"' in l or '"step":"storm"' in l): return json.loads(l)
++            if l.startswith("{") and ('"step":"rw"' in l or '"step":"storm"' in l):
++                d = json.loads(l)
++                # round4 06:50: a dead/exited worker leaves its last line behind -> stale TPS. Ignore lines older than 25 s (workers log every 10 s).
++                try:
++                    import calendar
++                    ts = calendar.timegm(time.strptime(d["t"][:19], "%Y-%m-%dT%H:%M:%S"))
++                    if time.time() - ts > 25: return None
++                except Exception: pass
++                return d
+     except Exception: pass
+     return None
+ conc = 96; RATEF = '/tmp/tps-storm.rate'; RMIN, RMAX = 500, 30000
+@@ -85,6 +93,7 @@
+ for w in W: start(*w)
+ PERIOD = 3 if FULL else 10
+ hour0 = time.time(); hacc = []; paused = False; du_t = 0; du = {}
++STOPF = "/tmp/tn10-break.STOP"; stop_logged = 0; DGF = "/tmp/tps-storm.diskguard"; dg_on = False
+ while True:
+     now = time.time()
+     if os.path.exists(HALT) or now > END:
+@@ -109,6 +118,12 @@
+         elif m < NODE_LO and n in gated: gated.discard(n); log("supervisor.jsonl", {"event": "gate-off", "node": n, "mempool": m})
+     healthy = [n for n in JP if st[n].get("synced") and st[n].get("sink_age_s", 999) <= 30 and n not in gated]
+     open(NODESF, "w").write(" ".join(healthy))
++    # round4 06:50: the monitor's STOP file makes every worker exit at once and is never cleared -> say so loudly.
++    if os.path.exists(STOPF):
++        if now - stop_logged > 60:
++            try: why = open(STOPF).read()[:300]
++            except Exception: why = "?"
++            log("supervisor.jsonl", {"event": "STOP-FILE-PRESENT", "file": STOPF, "note": "rwstorm workers exit instantly while it exists; remove it by hand after checking the cause", "content": why}); stop_logged = now
+     # resources
+     disk = shutil.disk_usage("/").free / 2**30
+     mem = int(re.search(r"MemAvailable:\s+(\d+)", open("/proc/meminfo").read()).group(1)) / 1024
+@@ -146,6 +161,13 @@
+         eff = (max(0, rate - 150) if not FULL else RMAX * mtaper) * dfac
+         open("/tmp/tps-storm-h.conc", "w").write("0" if (mp > PANIC_MP or dfac == 0) else "8")
+         if mp > PANIC_MP: eff = 0  # 22:45 hard brake: nothing new above PANIC_MP (90k via limits)
++        # round4 06:50: live disk guard (GB) in /tmp/tps-storm.diskguard: below it the storm offers 0 (logged once per crossing).
++        try: dguard = float(open(DGF).read().split()[0])
++        except Exception: dguard = 0.0
++        if disk < dguard:
++            eff = 0; open("/tmp/tps-storm-h.conc", "w").write("0")
++            if not dg_on: log("supervisor.jsonl", {"event": "DISK-GUARD-ON", "disk_gb": round(disk, 2), "guard_gb": dguard}); dg_on = True
++        elif dg_on and disk > dguard + 0.3: log("supervisor.jsonl", {"event": "DISK-GUARD-OFF", "disk_gb": round(disk, 2)}); dg_on = False
+         open(RATEF, "w").write(str(int(eff))); open(CONCF, "w").write(str(CMAX))
+     # workers
+     for tag, argv, env in W:
+@@ -162,7 +184,8 @@
+            "receivers": sum((l or {}).get("distinct_receivers", 0) for t, l in ls.items() if t.startswith("P")),
+            "pool": sum((l or {}).get("pool", 0) for t, l in ls.items() if t.startswith("P")),
+            "fees_tkas": round(sum(int((l or {}).get("fees_sompi", "0")) for l in ls.values()) / 1e8, 2),
+-           "rate_cap": int(((max(0, rate - 150)) if not FULL else RMAX * mtaper) * dfac) if not paused else 0, "disk_factor": round(dfac, 2), "disk_cap_tps": int(disk_cap), "full": FULL, "mempool_taper": round(mtaper, 2), "nodes": st, "healthy": healthy, "disk_free_gb": round(disk, 2), "mem_avail_mb": int(mem), "appdir_gb": du}
++           "rate_cap": int(((max(0, rate - 150)) if not FULL else RMAX * mtaper) * dfac) if not paused else 0, "disk_factor": round(dfac, 2), "disk_cap_tps": int(disk_cap), "full": FULL, "mempool_taper": round(mtaper, 2), "nodes": st, "healthy": healthy, "disk_free_gb": round(disk, 2), "mem_avail_mb": int(mem), "appdir_gb": du,
++           "workers_alive": sum(1 for p in procs.values() if p.poll() is None), "workers_fresh": sum(1 for l in ls.values() if l), "stop_file": os.path.exists(STOPF), "disk_guard_on": dg_on}
+     log("supervisor.jsonl", rec); hacc.append(rec)
+     if now - hour0 >= 3600:
+         a = [r["accepted_tps"] for r in hacc]
