@@ -9,7 +9,7 @@ Previous rounds: [round 1](https://github.com/STP-KAS/grok-bot-vprogs/tree/tn10-
 
 Round 4 combined a Kaspa TN10 transaction storm, the `grok-deskfloor` vprog runner, and tic-tac-toe. The full-gusto windows measured high throughput but exposed two operational limits: TN10 periodic pruning/compaction can require more than 15 GB transient disk, and the mempool brake reacts too slowly when senders are already in flight. The node survived after an emergency stop, removal of the rebuildable `utxoindex`, and restart.
 
-The storm is now in a **4-hour paced run to 11:52 CEST**, restarted at **6x minimum fee**. P-tag fee is 385,800 sompi/transaction (6 × the 64,300-sompi base used here). The pacer is currently disk-limited at about 1,380 accepted tx/s, with a low mempool and n0 synced. Final burn and disk measurements are deliberately pending.
+The storm is now in a **4-hour paced run to 11:52 CEST**, restarted at **6x minimum fee**. P-tag fee is 385,800 sompi/transaction (6 × the 64,300-sompi base used here). The pacer is currently conservatively fee-limited at about 1,257 accepted tx/s (disk model about 1,360/s), with a low mempool and n0 synced. Final burn and disk measurements are deliberately pending.
 
 ## What and how
 
@@ -88,7 +88,7 @@ At 07:28:18 the mempool reached 96,546 and kaspad evicted 6,223 transactions. Th
 
 ## Interim paced run (6x; final after 11:52)
 
-At restart, the live state was approximately 79k TKAS in the storm state files and 23.7 GB free. The pacer configuration uses 600 bytes/transaction, a 12.5 GB planning floor, a 12 GB hard guard, a 15 GB resume threshold, and `FEE_TKAS_PER_TX=0.003858` (385,800 sompi = 6x P-tag fee).
+At restart, the live state was approximately 79k TKAS in the storm state files and 23.7 GB free. The pacer configuration uses 600 bytes/transaction, a 12.5 GB planning floor, a 12 GB hard guard, a 15 GB resume threshold, and a conservative blended `FEE_TKAS_PER_TX=0.0043`. The exact 6x P-tag fee remains 0.003858 TKAS (385,800 sompi); the blend accounts for the H lane (0.009744 TKAS base fee).
 
 Observed after ramp-up:
 
@@ -96,13 +96,13 @@ Observed after ramp-up:
 |---|---:|
 | P-tag fee | 385,800 sompi/tx |
 | H-lane fee sample | 974,400 sompi/tx base lane fee at 6x |
-| accepted tx/s | 606/s during ramp; about 1,380/s after the shortened-run recompute |
+| accepted tx/s | 606/s during ramp; 1,257/s after the conservative blended-fee recompute (1,335–1,363/s before it) |
 | mempool | 0–656 before the shortened-run recompute; well below 80k |
 | n0 | pid 2341090, synced, RPC healthy |
 | free disk | about 23.7 GB |
 | binding pacer limit | disk planning rate, about 719/s (fund model about 732/s) |
 
-After shortening the run, the pacer recomputed to about **1,380/s** (disk model) versus about **1,400/s** (configured fee-fund model), so disk is the configured binding limit. Projection is **12.5 GB free at 11:52** and near-zero TKAS remaining under that model; the final report will replace this with measured fee burn, actual disk slope, and the closing balance. The H lane has a higher carrier fee than the P tag, so its contribution will be reported separately rather than hidden in the headline P-tag fee.
+After shortening the run, the disk model was about **1,360/s**, but measured blended fee burn was about 0.00417 TKAS/tx, so the pacer conservatively uses 0.0043 and now runs at about **1,257/s**. The conservative funds model binds just before the disk model; both project to roughly **12.5 GB free / a small positive funds reserve at 11:52**. Early disk slope was variable at roughly 5–6 GB/h during the high-rate ramp. the final report will replace this with measured fee burn, actual disk slope, and the closing balance. The H lane has a higher carrier fee than the P tag, so its contribution will be reported separately rather than hidden in the headline P-tag fee.
 
 ## Flaws and operational lessons
 
