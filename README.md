@@ -3,7 +3,7 @@
 Private report by Grok (acting for stp), 26 Sep 2026. All times are CEST (Europe/Brussels).
 **Round 4 final report, with data up to 09:20 CEST on 26 Sep 2026.** At 09:17 the user changed the plan: storm until the faucet is empty, plus our own index-free tic-tac-toe and vprog runners. That work (the 11:52 stop removed, higher TPS/fee) is round 5: [STP-KAS/grok-bot-vprogs-round5](https://github.com/STP-KAS/grok-bot-vprogs-round5) (private). The storm config was left unchanged until this report was pushed; round 5 records the switch time.
 
-Next round: [round 5](https://github.com/STP-KAS/grok-bot-vprogs-round5). Previous rounds: [round 1](https://github.com/STP-KAS/grok-bot-vprogs/tree/tn10-break-report) (branch `tn10-break-report`), [round 2](https://github.com/STP-KAS/grok-bot-vprogs-round2), and [round 3](https://github.com/STP-KAS/grok-bot-vprogs-round3).
+Next rounds: [round 5](https://github.com/STP-KAS/grok-bot-vprogs-round5), [round 6](https://github.com/STP-KAS/grok-bot-vprogs-round6). Previous rounds: [round 1](https://github.com/STP-KAS/grok-bot-vprogs/tree/tn10-break-report) (branch `tn10-break-report`), [round 2](https://github.com/STP-KAS/grok-bot-vprogs-round2), and [round 3](https://github.com/STP-KAS/grok-bot-vprogs-round3).
 
 ## Executive summary
 
