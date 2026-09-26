@@ -9,7 +9,7 @@ Previous rounds: [round 1](https://github.com/STP-KAS/grok-bot-vprogs/tree/tn10-
 
 Round 4 combined a Kaspa TN10 transaction storm, the `grok-deskfloor` vprog runner, and tic-tac-toe. The full-gusto windows measured high throughput but exposed two operational limits: TN10 periodic pruning/compaction can require more than 15 GB transient disk, and the mempool brake reacts too slowly when senders are already in flight. The node survived after an emergency stop, removal of the rebuildable `utxoindex`, and restart.
 
-The storm is now in an **4-hour paced run to 11:52 CEST**, restarted at **6x minimum fee**. P-tag fee is 385,800 sompi/transaction (6 × the 64,300-sompi base used here). The pacer is currently disk-limited at about 1,380 accepted tx/s, with a low mempool and n0 synced. Final burn and disk measurements are deliberately pending.
+The storm is now in a **4-hour paced run to 11:52 CEST**, restarted at **6x minimum fee**. P-tag fee is 385,800 sompi/transaction (6 × the 64,300-sompi base used here). The pacer is currently disk-limited at about 1,380 accepted tx/s, with a low mempool and n0 synced. Final burn and disk measurements are deliberately pending.
 
 ## What and how
 
